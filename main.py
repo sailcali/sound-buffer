@@ -1,29 +1,40 @@
 import pyaudio
 import wave
+from collections import deque
 
 chunk = 1024  # Record in chunks of 1024 samples
 sample_format = pyaudio.paInt16  # 16 bits per sample
 channels = 2
 fs = 44100  # Record at 44100 samples per second
-seconds = 3
+seconds = 60*5
 filename = "output.wav"
 
 p = pyaudio.PyAudio()  # Create an interface to PortAudio
 
 print('Recording')
-
+reached = False
 stream = p.open(format=sample_format,
                 channels=channels,
                 rate=fs,
                 frames_per_buffer=chunk,
                 input=True)
 
-frames = []  # Initialize array to store frames
+frames = deque([])  # Initialize array to store frames
 
 # Store data in chunks for 3 seconds
-for i in range(0, int(fs / chunk * seconds)):
-    data = stream.read(chunk)
-    frames.append(data)
+try:
+    while True:
+        data = stream.read(chunk)
+        frames.append(data)
+        if len(frames) > fs / chunk * seconds:
+            frames.popleft()
+            if not reached:
+                print("Reached limit")
+                reached = True
+
+
+except KeyboardInterrupt:
+    pass
 
 # Stop and close the stream 
 stream.stop_stream()
